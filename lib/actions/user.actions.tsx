@@ -1,7 +1,7 @@
 "use server"
 
 import { createSessionClient, createAdminClient } from "../appwrite";
-import { ID } from "node-appwrite";
+import { ID, Query } from "node-appwrite";
 import { cookies } from "next/headers";
 import { encryptId, extractCustomerIdFromUrl, parseStringify } from "../utils";
 import { CountryCode, ProcessorTokenCreateRequest, ProcessorTokenCreateRequestProcessorEnum, Products } from "plaid";
@@ -16,6 +16,22 @@ const {
 
 } = process.env;
 
+export const getUserInfo = async ({userId}: getUserInfoProps) => {
+  try {
+    const { database } = await createAdminClient();
+
+    const user = await database.listDocuments(
+      DATABASE_ID!,
+      USER_COLLECTION_ID!,
+      [Query.equal('userId', [userId])]
+    )
+
+    return parseStringify(user.documents[0]);
+  } catch (error) {
+    console.log(error)
+  }
+}
+
 export const signIn = async (props: signInProps) => {
 
   const { email, password } = props;
@@ -24,8 +40,17 @@ export const signIn = async (props: signInProps) => {
     const { account } = await createAdminClient();
 
     const session = await account.createEmailPasswordSession(email, password)
+
+    cookies().set("appwrite-session", session.secret, {
+      path: "/",
+      httpOnly: true,
+      sameSite: "strict",
+      secure: true,
+    });
+
+    const user = await getUserInfo({userId: session.userId});
     
-    return parseStringify(session);
+    return parseStringify(user);
 
   } catch (error) {
     console.error("Error during sign in:", error);
@@ -87,7 +112,11 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
 export async function getLoggedInUser() {
   try {
     const { account } = await createSessionClient();
-    const user =  await account.get();
+    const result =  await account.get();
+
+    let user = await getUserInfo({userId: result.$id});
+
+    user = {...user, name: `${user.firstName} ${user.lastName}`}
 
     return parseStringify(user);
   } catch (error) {
@@ -115,7 +144,7 @@ export const createLinkToken = async (user: User) => {
         client_user_id: user.$id,
       },
       client_name: `${user.firstName} ${user.lastName}`,
-      products: ["auth"] as Products[],
+      products: ["auth", "transactions"] as Products[],
       language: "en",
       country_codes: ["US"] as CountryCode[],
 
@@ -202,6 +231,7 @@ export const exchangePublicToken = async ({
     if (!fundingSourceUrl) throw Error;
 
     // Create a bank account using the user ID, item ID, account ID, access token, funding source URL, and shareableId ID
+
     await createBankAccount({
       userId: user.$id,
       bankId: itemId,
