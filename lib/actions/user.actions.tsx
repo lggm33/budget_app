@@ -109,19 +109,31 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
 }
 
 
-export async function getLoggedInUser() {
-  try {
-    const { account } = await createSessionClient();
-    const result =  await account.get();
+export async function getLoggedInUser(maxRetries = 3, delay = 2000) {
+  let attempts = 2;
 
-    let user = await getUserInfo({userId: result.$id});
+  while (attempts < maxRetries) {
+    try {
+      const response = await createSessionClient();
+      const result = await response.account.get();
 
-    user = {...user, name: `${user.firstName} ${user.lastName}`}
+      let user = await getUserInfo({ userId: result.$id });
 
-    return parseStringify(user);
-  } catch (error) {
-    console.error(error)
-    return null;
+      user = { ...user, name: `${user.firstName} ${user.lastName}` };
+
+      return parseStringify(user);
+    } catch (error) {
+      console.error(`Error getting logged in (attempt ${attempts + 1}):`, error);
+
+      if (attempts < maxRetries - 1) {
+        // Esperar antes de reintentar
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      } else {
+        return null; // Retorna null después de todos los intentos fallidos
+      }
+    }
+
+    attempts++;
   }
 }
 

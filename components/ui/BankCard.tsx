@@ -6,10 +6,11 @@ import React from 'react'
 function BankCard(props: CreditCardProps) {
 
   const {account, userName, showBalance} = props
+  
 
   return (
     <div className='flex flex-col'>
-      <Link href='/' className='bank-card'>
+      <Link href={`/transaction-history/?id?${account.appwriteItemId}`} className='bank-card'>
         <div className="bank-card_content">
           <div>
             <h1 className="text-16 semi-bold text-white">

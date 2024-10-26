@@ -7,7 +7,7 @@ import {
   getAccounts 
 } from '@/lib/actions/bank.actions'
 import { getLoggedInUser } from '@/lib/actions/user.actions'
-import React from 'react'
+import {redirect} from "next/navigation";
 
 async function Home(props: SearchParamProps) {
 
@@ -16,6 +16,8 @@ async function Home(props: SearchParamProps) {
   const currentPage = Number(page as string)
 
   let loggedIn = await getLoggedInUser()
+
+  if(!loggedIn) redirect(`/`)
   
   const accounts = await getAccounts({userId: loggedIn.$id})
 
