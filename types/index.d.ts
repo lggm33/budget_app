@@ -10,14 +10,12 @@ declare type SearchParamProps = {
 declare type SignUpParams = {
   firstName: string;
   lastName: string;
-  address1: string;
   city: string;
-  state: string;
-  postalCode: string;
+  country: string;
   dateOfBirth: string;
-  ssn: string;
   email: string;
   password: string;
+  phoneNumber: string;
 };
 
 declare type LoginUser = {
@@ -27,6 +25,7 @@ declare type LoginUser = {
 
 declare type User = {
   $id: string;
+  id: string;
   email: string;
   userId: string;
   dwollaCustomerUrl: string;
@@ -40,6 +39,8 @@ declare type User = {
   postalCode: string;
   dateOfBirth: string;
   ssn: string;
+  first_name: string;
+  last_name: string;
 };
 
 declare type NewUserParams = {
@@ -52,7 +53,7 @@ declare type NewUserParams = {
 declare type Account = {
   id: string;
   availableBalance: number;
-  currentBalance: number;
+  balance: number;
   officialName: string;
   mask: string;
   institutionId: string;
@@ -61,6 +62,7 @@ declare type Account = {
   subtype: string;
   appwriteItemId: string;
   sharableId: string;
+  bank_name: string;
 };
 
 declare type Transaction = {
@@ -227,7 +229,7 @@ declare interface SiderbarProps {
 declare interface RecentTransactionsProps {
   accounts: Account[];
   transactions: Transaction[];
-  appwriteItemId: string;
+  user: User;
   page: number;
 }
 

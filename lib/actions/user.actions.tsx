@@ -9,6 +9,10 @@ import { count } from "console";
 import { plaidClient } from "../plaid";
 import { revalidatePath } from "next/cache";
 import { addFundingSource, createDwollaCustomer } from "./dwolla.actions";
+import { redirect } from 'next/navigation'
+import { NextResponse, type NextRequest } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+
 const {
   APPWRITE_DATABASE_ID: DATABASE_ID,
   APPWRITE_USER_COLLECTION_ID: USER_COLLECTION_ID,
@@ -16,139 +20,32 @@ const {
 
 } = process.env;
 
-export const getUserInfo = async ({userId}: getUserInfoProps) => {
+export const getUserInfo = async () => {
   try {
-    const { database } = await createAdminClient();
+    const supabase = await createClient()
+    const {data: { user } } = await supabase.auth.getUser()
 
-    const user = await database.listDocuments(
-      DATABASE_ID!,
-      USER_COLLECTION_ID!,
-      [Query.equal('userId', [userId])]
-    )
+    const response = await supabase.from('users').select(`*, cards(*), transactions(*)`).eq('id', user?.id).single()
 
-    return parseStringify(user.documents[0]);
+    const {cards, transactions, ...data} = response.data
+
+    const totalBanks = cards?.length || 0
+
+    const totalCurrentBalance = cards?.reduce((acc: any, card: { balance: any; }) => acc + card.balance, 0) || 0
+
+    const userInfo = {
+      transactions: transactions,
+      cards: cards,
+      data: {...data, totalBanks, totalCurrentBalance}
+    }
+
+    console.log({transactions})
+
+    return parseStringify(userInfo);
   } catch (error) {
     console.log(error)
   }
 }
-
-export const signIn = async (props: signInProps) => {
-
-  const { email, password } = props;
-  try {
-
-    const { account } = await createAdminClient();
-
-    const session = await account.createEmailPasswordSession(email, password)
-
-    cookies().set("appwrite-session", session.secret, {
-      path: "/",
-      httpOnly: true,
-      sameSite: "strict",
-      secure: true,
-    });
-
-    const user = await getUserInfo({userId: session.userId});
-    
-    return parseStringify(user);
-
-  } catch (error) {
-    console.error("Error during sign in:", error);
-  }
-}
-
-export const signUp = async ({ password, ...userData }: SignUpParams) => {
-
-  const { email, firstName, lastName } = userData
-  
-  let newUserAccount
-
-  try {
-
-    const { account, database } = await createAdminClient();
-
-    newUserAccount = await account.create(ID.unique(), email, password, `${firstName} ${lastName}`);
-    
-    if (!newUserAccount) throw new Error("Error creating user");
-
-    const dwollaCustomerUrl = await createDwollaCustomer({
-      ...userData,
-      type: 'personal'
-    })
-
-    if(!dwollaCustomerUrl) throw new Error("Error creating dwolla customer");
-
-    const dwollaCustomerId = extractCustomerIdFromUrl(dwollaCustomerUrl);
-
-    const newUser = await database.createDocument(
-      DATABASE_ID!,
-      USER_COLLECTION_ID!,
-      ID.unique(), {
-        ...userData,
-        userId: newUserAccount.$id,
-        dwollaCustomerId,
-        dwollaCustomerUrl
-      }
-    )
-
-    const session = await account.createEmailPasswordSession(email, password);
-
-    cookies().set("appwrite-session", session.secret, {
-      path: "/",
-      httpOnly: true,
-      sameSite: "strict",
-      secure: true,
-    });
-
-  return parseStringify(newUser);
-    
-  } catch (error) {
-    console.error("Error during sign in:", error);
-    return null
-  }
-}
-
-
-export async function getLoggedInUser(maxRetries = 3, delay = 2000) {
-  let attempts = 2;
-
-  while (attempts < maxRetries) {
-    try {
-      const response = await createSessionClient();
-      const result = await response.account.get();
-
-      let user = await getUserInfo({ userId: result.$id });
-
-      user = { ...user, name: `${user.firstName} ${user.lastName}` };
-
-      return parseStringify(user);
-    } catch (error) {
-      console.error(`Error getting logged in (attempt ${attempts + 1}):`, error);
-
-      if (attempts < maxRetries - 1) {
-        // Esperar antes de reintentar
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      } else {
-        return null; // Retorna null después de todos los intentos fallidos
-      }
-    }
-
-    attempts++;
-  }
-}
-
-export async function logoutAccount() {
-  try {
-    const { account } = await createSessionClient();
-    cookies().delete("appwrite-session");
-    await account.deleteSession("current");
-    
-  } catch (error) {
-    console.error(error)
-    return null
-  }
-}
-
 export const createLinkToken = async (user: User) => {
   try {
     const tokenParams = {
@@ -313,4 +210,79 @@ export const getBankByAccountId = async ({ accountId }: getBankByAccountIdProps)
   } catch (error) {
     console.log(error)
   }
+}
+
+export async function loginSupabase(props: signInProps) {
+
+  const {email, password} = props
+  
+  const supabase = await createClient()
+
+  // type-casting here for convenience
+  // in practice, you should validate your inputs
+  // const data = {
+  //   email: formData.get('email') as string,
+  //   password: formData.get('password') as string,
+  // }
+
+  const { error } = await supabase.auth.signInWithPassword({email, password})
+  
+  if (error) {
+    console.error("Error in loginSupabase funtion: ", error)
+    redirect('/error')
+  }
+
+  revalidatePath('/', 'layout')
+  redirect('/dashboard')
+}
+
+export async function signupSupabase(props: SignUpParams) {
+
+  const { email, password } = props
+
+  const supabase = await createClient()
+
+  const response = await supabase.auth.signUp({email, password})
+  console.log(response.data.user)
+  
+  if (response.error) {
+    console.error("Error in signupSupabase funtion: ", response.error)
+    redirect('/error')
+  }
+
+  const data = {
+    id: response.data.user?.id,
+    email: props.email,
+    first_name: props.firstName,
+    last_name: props.lastName,
+    phone_number: props.phoneNumber,
+    city: props.city,
+    country: props.country,
+    date_of_birth: props.dateOfBirth,
+
+  }
+
+  const createDataUser = await supabase.from('users').insert({...data}).select()
+  console.log(createDataUser)
+
+  revalidatePath('/', 'layout')
+  redirect('/confirm-email')
+}
+
+export async function logoutSupabase() {
+  const supabase = await createClient()
+  const {error} = await supabase.auth.signOut()
+
+  if (error) {
+    console.error("Error in logoutSupabase funtion: ", error)
+    redirect('/error')
+  }
+ redirect('/')
+}
+
+export async function isUserLoggin() {
+  const supabase = await createClient()
+  const {data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.redirect('/sign-in')
+  return user
 }

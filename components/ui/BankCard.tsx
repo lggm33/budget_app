@@ -17,7 +17,7 @@ function BankCard(props: CreditCardProps) {
               { userName}
             </h1>
             <p className="font-ibm-plex-serif font-black text-white">
-              {formatAmount(account.currentBalance)}
+              {formatAmount(account.balance)}
             </p>
           </div>
 
@@ -31,7 +31,7 @@ function BankCard(props: CreditCardProps) {
               </h2>
             </div>
             <p className="text-14 font-semibold tracking-[1.1px] text-white">
-            ◍◍◍◍ ◍◍◍◍ ◍◍◍◍ <span className='text-16'>1234</span>
+            ◍◍◍◍ ◍◍◍◍ ◍◍◍◍ <span className='text-16'>{account.mask}</span>
             </p>
           </article>
         </div>

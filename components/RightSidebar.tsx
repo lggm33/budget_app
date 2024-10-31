@@ -14,12 +14,12 @@ function RightSidebar(props: RightSidebarProps) {
         <div className="profile">
           <div className="profile-img">
             <span className="text-5xl font-bold text-blue-500">
-              {user?.name[0]}
+              {user?.first_name[0]}
             </span>
           </div>
           <div className="profile-details">
             <h1 className="profile-name">
-              {user.name}
+              {user.first_name}
             </h1>
             <p className="profile-email">
               {user.email}
@@ -51,7 +51,7 @@ function RightSidebar(props: RightSidebarProps) {
           <div className="relative flex flex-1 flex-col items-center justify-center gap-5">
             <div className="relative z-10">
               <BankCard
-                key={banks[0].$id}
+                key={banks[0].id}
                 account={banks[0]}
                 userName={user.name}
                 showBalance={false}
@@ -60,9 +60,9 @@ function RightSidebar(props: RightSidebarProps) {
             {banks[1] && (
               <div className="absolute right-0 top-8 z-0 w-[90%]">
                 <BankCard
-                  key={banks[1].$id}
+                  key={banks[1].id}
                   account={banks[1]}
-                  userName={user.name}
+                  userName={user.firstName}
                   showBalance={false}
                 />
               </div>

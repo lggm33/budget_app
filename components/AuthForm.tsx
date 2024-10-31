@@ -14,7 +14,7 @@ import {Form} from "@/components/ui/form"
 import {authFormSchema} from "@/lib/utils"
 import CustomInput from "./ui/CustomInput"
 import { Loader2 } from "lucide-react"
-import { signUp, signIn, getLoggedInUser } from "@/lib/actions/user.actions"
+import { signUp, signIn, loginSupabase, signupSupabase } from "@/lib/actions/user.actions"
 import { useRouter } from "next/navigation"
 import PlaidLink from "./PlaidLink"
 
@@ -53,27 +53,25 @@ function AuthForm({type}: {type:string}) {
         const userData = {
           firstName: data.firstName!,
           lastName: data.lastName!,
-          address1: data.address1!,
+          phoneNumber: data.phoneNumber!,
           city: data.city!,
-          state: data.state!,
-          postalCode: data.postalCode!,
+          country: data.country!,
           dateOfBirth: data.dateOfBirth!,
-          ssn: data.ssn!,
           email: data.email,
           password: data.password
         }
 
-        const newUser = await signUp(userData);
+        const newUser = await signupSupabase(userData);
         setUser(newUser)
       }
 
       if (type === "sign-in") {
-        const response = await signIn({
+        const response = await loginSupabase({
           email: data.email,
            password: data.password,
         })
 
-        if (response) router.push("/")
+        if (response) router.push("/dashboard")
       }
       
     } catch (error) {
@@ -86,18 +84,9 @@ function AuthForm({type}: {type:string}) {
   return (
     <section className="auth-form">
       <header className="flex flex-col gap-5 md:gap-8">
-      <Link
-            href="/"
-            className='flex  cursor-pointer items-center gap-1'
-          >
-            <Image
-              src="/icons/logo.svg"
-              alt="Budget Logo"
-              width={34}
-              height={34}
-
-            /> 
-            <h1 className="text-26 font-ibm-plex-serif font-bold text-black-1">Budget App</h1>
+          <Link className="flex items-center space-x-2" href="/">
+            <svg className="h-6 w-6 text-blue-600" fill="none" height="35" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="35" xmlns="http://www.w3.org/2000/svg"><rect height="16" rx="2" width="20" x="2" y="4"/><path d="M7 15h0M2 9h20"/></svg>
+            <span className="hidden font-bold sm:inline-block text-4xl">FinanzApp</span>
           </Link>
 
           <div className="flex flex-col gap-1 md:gap-3">
@@ -150,9 +139,9 @@ function AuthForm({type}: {type:string}) {
                    
                   <CustomInput
                     control={form.control}
-                    name="address1"
-                    label="Address"
-                    placeholder="Enter your address"
+                    name="country"
+                    label="Country"
+                    placeholder="Enter your country"
                     type="text"
                   />
                   <CustomInput
@@ -166,22 +155,6 @@ function AuthForm({type}: {type:string}) {
                   <div className="flex gap-4">
                     <CustomInput
                       control={form.control}
-                      name="state"
-                      label="State"
-                      placeholder="Ex: NY"
-                      type="text"
-                    />
-                    <CustomInput
-                      control={form.control}
-                      name="postalCode"
-                      label="Postal Code"
-                      placeholder="Ex: 10001"
-                      type="text"
-                    />
-                  </div>
-                  <div className="flex gap-4">
-                    <CustomInput
-                      control={form.control}
                       name="dateOfBirth"
                       label="Date of Birth"
                       placeholder="YYYY-MM-DD"
@@ -189,9 +162,9 @@ function AuthForm({type}: {type:string}) {
                     />
                     <CustomInput
                       control={form.control}
-                      name="ssn"
-                      label="SSN"
-                      placeholder="Ex: 1234"
+                      name="phoneNumber"
+                      label="Phone Number"
+                      placeholder="Ex: +15553334444"
                       type="text"
                     />
                   </div>

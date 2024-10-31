@@ -7,7 +7,6 @@ function TotalBalanceBox(props: TotlaBalanceBoxProps) {
 
   const {accounts, totalBanks, totalCurrentBalance} = props;
 
-
   return (
     <section className="total-balance">
       <div className="total-balance-chart">
