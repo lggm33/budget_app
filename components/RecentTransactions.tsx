@@ -7,7 +7,7 @@ import TransactionsTable from './TransactionsTable'
 
 function RecentTransactions(props: RecentTransactionsProps) {
 
-  const {accounts, transactions=[], appwriteItemId, page=1} = props
+  const {accounts, transactions=[], user, page=1} = props
 
   return (
     <section className='recent-transactions'>
@@ -16,23 +16,22 @@ function RecentTransactions(props: RecentTransactionsProps) {
           Recent Transactions
         </h2>
         <Link 
-          href={`/transaction-history/?id=${appwriteItemId}`}
+          href={`/transaction-history/?id=${accounts[0].id}`}
           className='view-all-btn'  
         >
           View all
         </Link>
       </header>
-      <Tabs defaultValue={appwriteItemId} className="w-full">
+      <Tabs defaultValue={accounts[0].bank_name} className="w-full">
         <TabsList className='recent-transactions-tablist'>
           {accounts.map((account: Account) => (
             <TabsTrigger
               key={account.id}
-              value={account.appwriteItemId}
+              value={account.bank_name}
             >
               <BankTabItem
                 key={account.id}
                 account={account}
-                appwriteItemId={appwriteItemId}
               />
             </TabsTrigger>
           ))}

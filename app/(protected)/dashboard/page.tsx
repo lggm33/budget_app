@@ -38,7 +38,7 @@ async function Home(props: SearchParamProps) {
             {/* <RecentTransactions
               accounts={cards}
               transactions={account?.transactions}
-              appwriteItemId={appwriteItemId}
+              user={data}
               page={currentPage}
             
             /> */}
